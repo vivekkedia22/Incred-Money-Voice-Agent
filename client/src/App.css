@@ -1,0 +1,57 @@
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+}
+
+.start-btn, .end-btn {
+  padding: 15px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.start-btn {
+  background: rgba(46, 204, 113, 0.8);
+  color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: rgba(46, 204, 113, 1);
+  transform: scale(1.05);
+}
+
+.start-btn:disabled {
+  background: rgba(46, 204, 113, 0.3);
+  cursor: not-allowed;
+}
+
+.end-btn {
+  background: rgba(231, 76, 60, 0.8);
+  color: white;
+}
+
+.end-btn:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 1);
+  transform: scale(1.05);
+}
+
+.end-btn:disabled {
+  background: rgba(231, 76, 60, 0.3);
+  cursor: not-allowed;
+}
