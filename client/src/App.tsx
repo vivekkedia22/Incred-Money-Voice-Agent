@@ -10,7 +10,7 @@ function App() {
 
   const startCall = useCallback(async () => {
     try {
-      const tokenResp = await fetch("http://localhost:3003/session", {
+      const tokenResp = await fetch("https://incred-money-voice-agent-production.up.railway.app/session", {
         method: "POST",
       });
       const session = await tokenResp.json();
