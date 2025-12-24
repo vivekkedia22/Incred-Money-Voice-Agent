@@ -7,28 +7,6 @@ function App() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const VECTOR_STORE_ID = import.meta.env.VITE_VECTOR_STORE_ID;
-  const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-
-  const vector_search = async (query: string) => {
-    console.log("called the vector_search function");
-    const response = await fetch(
-      `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/search`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: query,
-        }),
-      }
-    );
-    const data = await response.json();
-    return data.data[0].content[0].text;
-  };
-
   const sendFunctionOutput = (
     dc: RTCDataChannel,
     callId: string,
@@ -47,14 +25,26 @@ function App() {
     dc.send(JSON.stringify({ type: "response.create" }));
   };
 
+  const vector_search = async (query: string) => {
+    const response = await fetch("https://incred-money-voice-agent-production.up.railway.app/vectorSearch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+      }),
+    });
+    const jsonData = await response.json();
+
+    return jsonData.data;
+  };
+
   const startCall = useCallback(async () => {
     try {
-      const tokenResp = await fetch(
-        "https://incred-money-voice-agent-production.up.railway.app/session",
-        {
-          method: "POST",
-        }
-      );
+      const tokenResp = await fetch("https://incred-money-voice-agent-production.up.railway.app/session", {
+        method: "POST",
+      });
       const session = await tokenResp.json();
 
       pcRef.current = new RTCPeerConnection();
@@ -77,28 +67,25 @@ function App() {
 
       const dc = pcRef.current.createDataChannel("oai-events");
       dc.onmessage = async (e) => {
-        console.log("AI Event:", e.data);
         const data = JSON.parse(e.data);
-        console.log(typeof e.data);
+
         switch (data.type) {
           case "output_audio_buffer.started":
-            console.log("the ai is set to true ahahhaha");
+            console.log("AI Event:", e.data);
             setIsAISpeaking(true);
             break;
           case "output_audio_buffer.stopped":
+            console.log("AI Event:", e.data);
             setIsAISpeaking(false);
             break;
           case "response.function_call_arguments.done":
+            console.log("AI Event:", e.data);
             console.log(`========================================
               THE FUNCTION CALL ARGUEMENTS HAS BEEN CALLED ${data}
               =================================================`);
             if (data.name === "vector_search") {
               console.log("Call the vector_search");
               const response = await vector_search(data.arguments);
-              console.log(
-                "This is the response i get for the vector_search",
-                response
-              );
               sendFunctionOutput(dc, data.call_id, response);
             }
             break;

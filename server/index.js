@@ -274,6 +274,8 @@ Voice-optimized
 
 Your success metric is interest created, not forced conversion.
 `;
+const VECTOR_STORE_ID=process.env.VECTOR_STORE_ID;
+const OPENAI_API_KEY=process.env.OPENAI_API_KEY;
 const TEMPERATURE = 0.8; // Controls the randomness of the AI's responses
 
 app.addHook("preHandler", async (request, reply) => {
@@ -290,9 +292,42 @@ app.get("/", (req, reply) => {
   reply.send("hello world");
 });
 
-app.post("/session", async (req, reply) => {
-  console.log("This is what i get hahaha", req.method);
+const vector_search = async (query) => {
+  
+  const response = await fetch(
+    `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/search`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: query,
+      }),
+    }
+  );
+  const data = await response.json();
+  return data.data[0].content[0].text;
+};
 
+app.post("/vectorSearch", async (req, reply) => {
+  try {
+    
+
+    const { query } = JSON.parse(req.body.query);
+    
+
+    const response = await vector_search(query);
+    
+    reply.send({ data: response });
+  } catch (error) {
+    console.error(error);
+    reply.status(500).send("Internal Server Error in the vector search");
+  }
+});
+
+app.post("/session", async (req, reply) => {
   try {
     const response = await axios.post(
       "https://api.openai.com/v1/realtime/client_secrets",
@@ -329,7 +364,7 @@ app.post("/session", async (req, reply) => {
         },
       }
     );
-    console.log("got the response", JSON.stringify(response.data));
+    
     reply.send(response.data);
   } catch (err) {
     console.log("error", err);
