@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Orb from "./components/Orb";
 import "./App.css";
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [eventUpdated, setEventUpdated] = useState(false);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -26,15 +27,18 @@ function App() {
   };
 
   const vector_search = async (query: string) => {
-    const response = await fetch("https://incred-money-voice-agent-production.up.railway.app/vectorSearch", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: query,
-      }),
-    });
+    const response = await fetch(
+      "https://incred-money-voice-agent-production.up.railway.app/vectorSearch",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: query,
+        }),
+      }
+    );
     const jsonData = await response.json();
 
     return jsonData.data;
@@ -42,9 +46,12 @@ function App() {
 
   const startCall = useCallback(async () => {
     try {
-      const tokenResp = await fetch("https://incred-money-voice-agent-production.up.railway.app/session", {
-        method: "POST",
-      });
+      const tokenResp = await fetch(
+        "https://incred-money-voice-agent-production.up.railway.app/session",
+        {
+          method: "POST",
+        }
+      );
       const session = await tokenResp.json();
 
       pcRef.current = new RTCPeerConnection();
@@ -67,6 +74,9 @@ function App() {
 
       const dc = pcRef.current.createDataChannel("oai-events");
       dc.onmessage = async (e) => {
+        setEventUpdated((prev) => {
+          return !prev;
+        });
         const data = JSON.parse(e.data);
 
         switch (data.type) {
@@ -76,7 +86,12 @@ function App() {
             break;
           case "output_audio_buffer.stopped":
             console.log("AI Event:", e.data);
+            console.log("abce");
             setIsAISpeaking(false);
+            console.log("this is updating the event");
+            setEventUpdated((prev) => {
+              return !prev;
+            });
             break;
           case "response.function_call_arguments.done":
             console.log("AI Event:", e.data);
@@ -112,6 +127,7 @@ function App() {
 
       await pcRef.current.setRemoteDescription(answer);
       setIsConnected(true);
+      console.log("======Call Started======");
     } catch (error) {
       console.error("Error starting call:", error);
     }
@@ -129,6 +145,18 @@ function App() {
     setIsAISpeaking(false);
   }, []);
 
+  useEffect(() => {
+    let timeout: number;
+    console.log("Event Updated",eventUpdated);
+    console.log(!isAISpeaking);
+    if (!isAISpeaking) {
+      timeout = setTimeout(() => {
+        endCall();
+        console.log("=====Call Ended=====");
+      }, 15000);
+    }
+    return () => clearTimeout(timeout);
+  }, [eventUpdated,isAISpeaking]);
   return (
     <div className="app">
       <div
